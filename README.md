@@ -5,6 +5,7 @@ A python implementation of Correlation Clustering [(Bansal et al., 2004)](https:
 - finds number of clusters by itself
 - robust to errors by minimizing a global loss
 - optimizes an intuitive quality criterion
+- our implementation is fast by using multiprocessing
 
 If you use this software for academic research, please [cite](#bibtex) these papers:
 
