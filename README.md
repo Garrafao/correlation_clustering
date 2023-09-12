@@ -3,6 +3,7 @@
 A python implementation of Correlation Clustering [(Bansal et al., 2004)](https://link.springer.com/article/10.1023/B:MACH.0000033116.57574.95). Correlation Clustering is a weighted graph clustering technique minimizing the sum of cluster disagreements, i.e., the sum of negative edge weights within clusters plus the sum of positive edge weights across clusters. It has some nice properties, e.g.:
 
 - finds number of clusters by itself
+- handles missing edges
 - robust to errors by minimizing a global loss
 - optimizes an intuitive quality criterion
 - our implementation is fast by using multiprocessing
