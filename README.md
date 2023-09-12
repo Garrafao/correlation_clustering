@@ -10,7 +10,11 @@ A python implementation of Correlation Clustering [(Bansal et al., 2004)](https:
 If you use this software for academic research, please [cite](#bibtex) these papers:
 
 - Dominik Schlechtweg, Nina Tahmasebi, Simon Hengchen, Haim Dubossarsky, Barbara McGillivray. 2021. [DWUG: A large Resource of Diachronic Word Usage Graphs in Four Languages](https://aclanthology.org/2021.emnlp-main.567/). In Proceedings of the 2021 Conference on Empirical Methods in Natural Language Processing.
-- Dominik Schlechtweg. 2022. Human and Computational Measurement of Lexical Semantic Change. PhD thesis. University of Stuttgart.
+- Dominik Schlechtweg. 2023. [Human and Computational Measurement of Lexical Semantic Change](http://dx.doi.org/10.18419/opus-12833). PhD thesis. University of Stuttgart.
+
+Find further extensive experiments testing and optimizing this implementation in:
+
+- Benjamin Tunc. [Optimierung von Clustering von Wortverwendungsgraphen](https://elib.uni-stuttgart.de/handle/11682/11923). Bachelor thesis. University of Stuttgart.
 
 ### Usage
 
@@ -35,15 +39,28 @@ BibTex
  url = {https://aclanthology.org/2021.emnlp-main.567},
  year = {2021}
 }
-
 ```
 ```
-@phdthesis{Schlechtweg2022measurement,
-  author  = "Schlechtweg, Dominik",
-  title   = "Human and Computational Measurement of Lexical Semantic Change",
-  school  = "University of Stuttgart",
-  address = "Stuttgart, Germany",
-  year    = 2022
+@phdthesis{Schlechtweg2023measurement,
+  author  = {Schlechtweg, Dominik},
+  title   = {Human and Computational Measurement of Lexical Semantic Change},
+  school  = {University of Stuttgart},
+  address =  {Stuttgart, Germany},
+  year    = {2023},
+  url = {http://dx.doi.org/10.18419/opus-12833},
+  slides = {https://garrafao.github.io/publications/220324-thesis-slides.pdf}
 }
 ```
+```
+@mastersthesis{Tunc2021OptimierungWUGs,
+author = {Benjamin Tunc},
+year = {2021}, 
+title = {{Optimierung von Clustering von Wortverwendungsgraphen}},
+type = {Bachelor thesis},
+school = {University of Stuttgart},
+slides = {https://garrafao.github.io/publications/211201-optimierung-wugs.pdf},
+url = {https://elib.uni-stuttgart.de/handle/11682/11923}
+}
+```
+
 
