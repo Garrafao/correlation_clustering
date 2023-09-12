@@ -19,7 +19,7 @@ def cluster_correlation_search(G, s = 10, max_attempts = 200, max_iters = 5000, 
     Apply correlation clustering. Assumes that negative edges have weights < 0, and positive edges have weights >= 0, that edges with nan have been removed and that weights are stored under edge attribute G[i][j]['weight'].
 
     :param G: graph
-    :param s: maximal number of senses a word can have
+    :param s: maximal number of clusters assumed (has strong influence on runtime)
     :param max_attempts: number of restarts for optimization
     :param max_iters: number of iterations for optimization
     :param initial: optional clustering for initialization
