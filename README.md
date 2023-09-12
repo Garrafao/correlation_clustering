@@ -14,7 +14,7 @@ If you use this software for academic research, please [cite](#bibtex) these pap
 
 Find further extensive experiments testing and optimizing this implementation in:
 
-- Benjamin Tunc. [Optimierung von Clustering von Wortverwendungsgraphen](https://elib.uni-stuttgart.de/handle/11682/11923). Bachelor thesis. University of Stuttgart. [slides](https://garrafao.github.io/publications/211201-optimierung-wugs.pdf)
+- Benjamin Tunc. [Optimierung von Clustering von Wortverwendungsgraphen](https://elib.uni-stuttgart.de/handle/11682/11923). Bachelor thesis. University of Stuttgart. [[slides]](https://garrafao.github.io/publications/211201-optimierung-wugs.pdf)
 
 ### Usage
 
