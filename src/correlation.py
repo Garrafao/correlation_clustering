@@ -51,11 +51,10 @@ def cluster_correlation_search(G, s = 10, max_attempts = 200, max_iters = 5000, 
     loss_init = Linear_loss.loss(init_state)
 
     if loss_init == 0.0:
-        print('loss_init: ', loss_init)
+        #print('loss_init: ', loss_init)
         classes.sort(key=lambda x:-len(x)) # sort by size
         end_time = time.time()
-        stats['runtime'] = (end_time - start_time)/60
-        stats = stats | {'s':s, 'max_attempts':max_attempts, 'max_iters':max_iters, 'split_flag':split_flag, 'runtime':(end_time - start_time)/60} 
+        stats = stats | {'s':s, 'max_attempts':max_attempts, 'max_iters':max_iters, 'split_flag':split_flag, 'runtime':(end_time - start_time)/60, 'loss':loss_init} 
         return classes, stats
 
     l2s = defaultdict(lambda: [])
@@ -82,7 +81,7 @@ def cluster_correlation_search(G, s = 10, max_attempts = 200, max_iters = 5000, 
 
     id = np.random.choice(range(len(l2s[min(l2s.keys())])))
     best_state, best_fitness = l2s[min(l2s.keys())][id], min(l2s.keys())
-    print('loss: ', best_fitness)
+    #print('loss: ', best_fitness)
 
     #print(best_state)
     best_state = best_state[0]
@@ -100,7 +99,7 @@ def cluster_correlation_search(G, s = 10, max_attempts = 200, max_iters = 5000, 
     classes.sort(key=lambda x:-len(x)) # sort by size
 
     end_time = time.time()
-    stats = stats | {'s':s, 'max_attempts':max_attempts, 'max_iters':max_iters, 'split_flag':split_flag, 'runtime':(end_time - start_time)/60} 
+    stats = stats | {'s':s, 'max_attempts':max_attempts, 'max_iters':max_iters, 'split_flag':split_flag, 'runtime':(end_time - start_time)/60, 'loss':best_fitness} 
     
     #print(stats['runtime'])
     
