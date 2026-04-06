@@ -3,7 +3,8 @@ from itertools import combinations
 from correlation import cluster_correlation_search
 from utils import get_clusters, transform_edge_weights
 import numpy as np
-from correlation import Loss 
+from correlation import Loss
+import pickle
 
 # Define true clusters
 nodes = ['node1', 'node2', 'node3', 'node4']
@@ -51,3 +52,48 @@ edges_negative = set([(n2i[i],n2i[j],w-0.0) for (i,j,w) in graph.edges.data("wei
 cluster_state = np.array([n2c[n] for n in sorted(n2c.keys())])  
 loss = Loss('linear_loss', edges_positive=edges_positive, edges_negative=edges_negative).loss(cluster_state)
 assert loss == cluster_stats['loss']
+
+# Test loss replication on public data
+
+## DWUG DE 3.0.0, large sparse graphs with quasi-ordinal edge weights
+threshold = 2.5
+for filename, loss_public in [('Abgesang', 108.5), ('Kubikmeter', 0), ('Titel', 147)]: # Titel is hard, its public loss is 138, but when keeping nan edges and noise cluster, it is 147
+    runtime = 0
+    with open('data/' + filename, 'rb') as f:
+        graph = pickle.load(f)
+    weight_transformation = lambda x: x-threshold
+    graph = transform_edge_weights(graph, transformation = weight_transformation) # shift edge weights
+
+    # Cluster graph
+    for i in range(5):
+        clusters = []
+        clusters, cluster_stats = cluster_correlation_search(graph, s = 20, max_attempts = 2000, max_iters = 50000, initial = clusters)
+        loss = cluster_stats['loss']
+        runtime += cluster_stats['runtime']
+        if loss <= loss_public:
+            break
+    print('loss', loss, 'loss_public', loss_public, 'runtime', runtime)
+    assert loss <= loss_public
+
+## SweWUG 2.0.0, small dense graphs with dense edge weights
+threshold = 0.6
+for filename, loss_public in [('al', 1.43347366), ('privatsak', 0), ('styvbarn', 2.77383317)]:
+    runtime = 0
+    with open('data/' + filename, 'rb') as f:
+        graph = pickle.load(f)
+    weight_transformation = lambda x: x-threshold
+    graph = transform_edge_weights(graph, transformation = weight_transformation) # shift edge weights
+
+    # Cluster graph
+    clusters = []
+    for i in range(5):
+        clusters, cluster_stats = cluster_correlation_search(graph, s = 20, max_attempts = 2000, max_iters = 50000, initial = clusters)
+        loss = cluster_stats['loss']
+        runtime += cluster_stats['runtime']
+        if np.isclose(loss, loss_public):
+            break
+    print('loss', loss, 'loss_public', loss_public, 'runtime', runtime)
+    assert np.isclose(loss, loss_public)
+
+
+

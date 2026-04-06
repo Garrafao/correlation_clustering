@@ -1,0 +1,4 @@
+__pycache__
+install_packages.sh
+.venv
+update-git.sh
