@@ -1,27 +1,17 @@
-import sys
-from itertools import combinations, product, chain
-from collections import defaultdict, Counter
-import random
+from collections import defaultdict
 import networkx as nx
 import numpy as np
-from scipy.stats import spearmanr
-from networkx.algorithms.dag import transitive_closure
-import six
-sys.modules['sklearn.externals.six'] = six
-import mlrose
 import time
-from scipy.optimize import linear_sum_assignment
 import multiprocessing as mp
+from scipy.optimize import dual_annealing
 
-
-def cluster_correlation_search(G, s = 10, max_attempts = 200, max_iters = 5000, initial = [], split_flag = True):
+def cluster_correlation_search(G, s = 10, max_iter = 50, initial = [], split_flag = True, rng = np.random.default_rng()):
     """
     Apply correlation clustering. Assumes that negative edges have weights < 0, and positive edges have weights >= 0, that edges with nan have been removed and that weights are stored under edge attribute G[i][j]['weight'].
 
     :param G: graph
     :param s: maximal number of clusters assumed (has strong influence on runtime)
-    :param max_attempts: number of restarts for optimization
-    :param max_iters: number of iterations for optimization
+    :param max_iter: number of iterations for optimization
     :param initial: optional clustering for initialization
     :param split_flag: optional flag, if non evidence cluster should be splitted
     :return classes, stats: list of clusters, list of stats
@@ -43,7 +33,7 @@ def cluster_correlation_search(G, s = 10, max_attempts = 200, max_iters = 5000, 
     edges_positive = set([(n2i[i],n2i[j],G[i][j]['weight']) for (i,j) in G.edges() if G[i][j]['weight'] >= 0.0])
     edges_negative = set([(n2i[i],n2i[j],G[i][j]['weight']) for (i,j) in G.edges() if G[i][j]['weight'] < 0.0])
     
-    Linear_loss = Loss('linear_loss', edges_positive=edges_positive, edges_negative=edges_negative)
+    Linear_loss = Loss('linear_loss_rounded', edges_positive=edges_positive, edges_negative=edges_negative)
     #conflict_loss = test_loss
     
     # Define initial state
@@ -54,7 +44,7 @@ def cluster_correlation_search(G, s = 10, max_attempts = 200, max_iters = 5000, 
         #print('loss_init: ', loss_init)
         classes.sort(key=lambda x:-len(x)) # sort by size
         end_time = time.time()
-        stats = stats | {'s':s, 'max_attempts':max_attempts, 'max_iters':max_iters, 'split_flag':split_flag, 'runtime':(end_time - start_time)/60, 'loss':loss_init} 
+        stats = stats | {'s':s, 'max_iter':max_iter, 'split_flag':split_flag, 'runtime':(end_time - start_time)/60, 'loss':loss_init} 
         return classes, stats
 
     l2s = defaultdict(lambda: [])
@@ -66,7 +56,7 @@ def cluster_correlation_search(G, s = 10, max_attempts = 200, max_iters = 5000, 
     #print(mp.cpu_count())
 
     # `pool.apply`
-    solutions = pool.starmap(Linear_loss.optimize_simulated_annealing, [(n, classes, G.nodes(), init_state, max_attempts, max_iters) for n in range(2,s)])
+    solutions = pool.starmap(Linear_loss.optimize_simulated_annealing, [(n, classes, G.nodes(), init_state, max_iter, rng.integers(100000), rng.integers(100000)) for n in range(2,s)])
     pool.close()    
     #print(solutions[0])
     
@@ -99,7 +89,7 @@ def cluster_correlation_search(G, s = 10, max_attempts = 200, max_iters = 5000, 
     classes.sort(key=lambda x:-len(x)) # sort by size
 
     end_time = time.time()
-    stats = stats | {'s':s, 'max_attempts':max_attempts, 'max_iters':max_iters, 'split_flag':split_flag, 'runtime':(end_time - start_time)/60, 'loss':best_fitness} 
+    stats = stats | {'s':s, 'max_iter':max_iter, 'split_flag':split_flag, 'runtime':(end_time - start_time)/60, 'loss':best_fitness} 
     
     #print(stats['runtime'])
     
@@ -120,6 +110,8 @@ class Loss(object):
             self.fitness_fn = self.test_loss
         if fitness_fn == 'linear_loss':
             self.fitness_fn = self.linear_loss
+        if fitness_fn == 'linear_loss_rounded':
+            self.fitness_fn = self.linear_loss_rounded
         if fitness_fn == 'binary_loss':
             self.fitness_fn = self.binary_loss
         if fitness_fn == 'binary_loss_poles':
@@ -137,6 +129,11 @@ class Loss(object):
         loss = loss_pos + loss_neg
         return loss
 
+    def linear_loss_rounded(self, state):
+        state = np.round(state)
+        loss = self.linear_loss(state)
+        return loss
+    
     def binary_loss(self, state):        
         loss_pos = len([1 for (i,j,w) in self.edges_positive if state[i] != state[j]])
         loss_neg = len([1 for (i,j,w) in self.edges_negative if state[i] == state[j]])
@@ -163,38 +160,48 @@ class Loss(object):
             loss = float('nan')
         return loss
 
-    def optimize_simulated_annealing(self, n, classes, nodes, init_state, max_attempts, max_iters):
+    def optimize_simulated_annealing(self, n, classes, nodes, init_state, max_iter, seed1, seed2):
 
-        # Important to reseed to have different seeds in different pool processes
-        np.random.seed()
-        
-        # Initialize custom fitness function object
-        fitness_fn = mlrose.CustomFitness(self.fitness_fn)
+        # Important to have different seeds in different pool processes
+        #print(seed1, seed2)
 
         l2s_ = defaultdict(lambda: [])
 
         # With initial state
         max_val = max(n,len(classes))
-        problem = mlrose.DiscreteOpt(length = len(nodes), fitness_fn = fitness_fn, maximize = False, max_val = max_val)
+        bounds = [(0, max_val) for i in range(len(nodes))]
+        #print(bounds)
 
-        # Define decay schedule
-        schedule = mlrose.ExpDecay()
+        objective = self.fitness_fn
+
+        init_state = init_state.astype(float) # this seems to be important
+        #print(init_state)
+
+        #def my_callback(x, f, context):
+        #    print(f"Intermediate result: x={x[0]:.2f}, f(x)={f:.2f}, Context={context}") # prints only first node's cluster assignment
+        #    return False # return False if you want to break the search
+        
         # Solve problem using simulated annealing
-        best_state, best_fitness = mlrose.simulated_annealing(problem, schedule = schedule, init_state = init_state, max_attempts = max_attempts, max_iters = max_iters)
-
-        l2s_[best_fitness].append((best_state,max_val))
-
-        # Important to reseed to have different seeds in different pool processes
-        np.random.seed()
+        res = dual_annealing(objective, bounds, no_local_search=True, maxiter=max_iter, x0 = init_state, rng=seed1)
+        
+        best_state = [int(np.round(i)) for i in res.x]
+        l2s_[res.fun].append((best_state,max_val))
+        #print(res.x)
+        #print(best_state)
+        #print(res.fun)
         
         # Repeat without initial state
         max_val = n
-        problem = mlrose.DiscreteOpt(length = len(nodes), fitness_fn = fitness_fn, maximize = False, max_val = max_val)
+        bounds = [(0, max_val) for i in range(len(nodes))]
 
-        schedule = mlrose.ExpDecay()
-        best_state, best_fitness = mlrose.simulated_annealing(problem, schedule = schedule, max_attempts = max_attempts, max_iters = max_iters)
-
-        l2s_[best_fitness].append((best_state,max_val))
+        # Solve problem using simulated annealing
+        res = dual_annealing(objective, bounds, no_local_search=True, maxiter=max_iter, rng=seed2)
+        
+        #print(res.x)
+        best_state = [int(np.round(i)) for i in res.x]
+        #print(best_state)
+        #print(res.fun)
+        l2s_[res.fun].append((best_state,max_val))
 
         return dict(l2s_)
 

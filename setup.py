@@ -8,6 +8,10 @@ setup(
     author='Dominik Schlechtweg,
     author_email='dominik.schlechtweg@ims.uni-stuttgart.de',
     license='BSD 3-clause',
+    packages=['pyexample'],
+    install_requires=['mpi4py&gt;=2.0',
+                      'numpy',                     
+                      ],
 
     classifiers=[
         'Development Status :: 3 - Alpha',
@@ -15,5 +19,6 @@ setup(
         'License :: OSI Approved :: BSD License',  
         'Operating System :: POSIX :: Linux',        
         'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3.5',
     ],
 )

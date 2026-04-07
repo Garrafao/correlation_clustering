@@ -27,7 +27,7 @@ weight_transformation = lambda x: x-threshold
 graph = transform_edge_weights(graph, transformation = weight_transformation) # shift edge weights
 
 # Cluster graph
-clusters, cluster_stats = cluster_correlation_search(graph, s = 5, max_attempts = 100, max_iters = 200)
+clusters, cluster_stats = cluster_correlation_search(graph, s = 5, max_iter = 200)
 
 # Display results
 node2cluster_inferred = {node:i for i, cluster in enumerate(clusters) for node in cluster}
@@ -36,7 +36,7 @@ print('clusters_inferred', node2cluster_inferred)
 print('loss', cluster_stats['loss'])
 
 # Clustering again and initializing with the previous solution can improve the solution in many cases (this can be done multiple times)
-clusters, cluster_stats = cluster_correlation_search(graph, s = 5, max_attempts = 100, max_iters = 200, initial = clusters)
+clusters, cluster_stats = cluster_correlation_search(graph, s = 5, max_iter = 50, initial = clusters)
 
 # Display results after second iteration
 node2cluster_inferred = {node:i for i, cluster in enumerate(clusters) for node in cluster}
@@ -65,11 +65,12 @@ for filename, loss_public in [('Abgesang', 108.5), ('Kubikmeter', 0), ('Titel', 
     graph = transform_edge_weights(graph, transformation = weight_transformation) # shift edge weights
 
     # Cluster graph
+    clusters = []
     for i in range(5):
-        clusters = []
-        clusters, cluster_stats = cluster_correlation_search(graph, s = 20, max_attempts = 2000, max_iters = 50000, initial = clusters)
+        clusters, cluster_stats = cluster_correlation_search(graph, s = 20, max_iter = 50, initial = clusters)
         loss = cluster_stats['loss']
         runtime += cluster_stats['runtime']
+        print('  Intermediate loss:', loss)
         if loss <= loss_public:
             break
     print('loss', loss, 'loss_public', loss_public, 'runtime', runtime)
@@ -87,9 +88,10 @@ for filename, loss_public in [('al', 1.43347366), ('privatsak', 0), ('styvbarn',
     # Cluster graph
     clusters = []
     for i in range(5):
-        clusters, cluster_stats = cluster_correlation_search(graph, s = 20, max_attempts = 2000, max_iters = 50000, initial = clusters)
+        clusters, cluster_stats = cluster_correlation_search(graph, s = 20, max_iter = 50, initial = clusters)
         loss = cluster_stats['loss']
         runtime += cluster_stats['runtime']
+        print('  Intermediate loss:', loss)
         if np.isclose(loss, loss_public):
             break
     print('loss', loss, 'loss_public', loss_public, 'runtime', runtime)
