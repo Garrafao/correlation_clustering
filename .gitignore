@@ -4,7 +4,6 @@
 .tox
 __pycache__
 ./build
-./dist
 correlation_clustering.egg-info
 install_packages.sh
 .venv
