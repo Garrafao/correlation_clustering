@@ -58,11 +58,11 @@ print('loss', cluster_stats['loss'])
 
 To install the package run
 
-	pip install correlation_clustering
+	pip install correlation-clustering
 
 Please run the test script with
 
-	pytest
+	pytest correlation_clustering/tests/
 
 
 BibTex
