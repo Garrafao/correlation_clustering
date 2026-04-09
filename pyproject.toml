@@ -34,12 +34,11 @@ classifiers = [
     'Programming Language :: Python :: 3.13',
     'Programming Language :: Python :: 3.14',
     'Programming Language :: Python :: 3 :: Only',
-    'Topic :: Software Development :: Libraries :: Python Modules',
-    'Topic :: Scientific/Engineering :: Graph Clustering',
+    'Topic :: Software Development :: Libraries :: Python Modules'
 ]
 
 authors = [
-  {name = "Dominik Schlechtweg", email = "dominik.schlechtweg@ims.uni-stuttgart.de"},
+  {name = "Dominik Schlechtweg", email = "dominik.schlechtweg@ims.uni-stuttgart.de"}
 ]
 
 [project.urls]
