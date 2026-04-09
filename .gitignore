@@ -3,7 +3,8 @@
 .ruff_cache
 .tox
 __pycache__
-./build
+build
+dist
 correlation_clustering.egg-info
 install_packages.sh
 .venv
