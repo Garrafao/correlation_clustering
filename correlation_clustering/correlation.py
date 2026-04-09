@@ -1,3 +1,4 @@
+import sys
 from collections import defaultdict
 import networkx as nx
 import numpy as np
@@ -5,11 +6,12 @@ import time
 import multiprocessing as mp
 from scipy.optimize import dual_annealing
 
-def cluster_correlation_search(G, s = 10, max_iter = 50, initial = [], split_flag = True, rng = np.random.default_rng()):
+def cluster_correlation_search(G, loss_type = 'linear_loss_rounded', s = 10, max_iter = 50, initial = [], split_flag = True, rng = np.random.default_rng()):
     """
     Apply correlation clustering. Assumes that negative edges have weights < 0, and positive edges have weights >= 0, that edges with nan have been removed and that weights are stored under edge attribute G[i][j]['weight'].
 
     :param G: graph
+    :param loss_type: type of loss applied, check Loss() class for possibilities. Currently only linear loss is implemented as rounding is needed. Other loss types can be added by adding rounded versions of them.
     :param s: maximal number of clusters assumed (has strong influence on runtime)
     :param max_iter: number of iterations for optimization
     :param initial: optional clustering for initialization
@@ -20,6 +22,8 @@ def cluster_correlation_search(G, s = 10, max_iter = 50, initial = [], split_fla
     start_time = time.time()    
     stats = {}
     G = G.copy()
+
+    assert loss_type == 'linear_loss_rounded' # other rounded loss versions currently not implemented
 
     if initial == []: # initialize with connected components unless initial clustering is provided
         classes = cluster_connected_components(G)
@@ -33,15 +37,13 @@ def cluster_correlation_search(G, s = 10, max_iter = 50, initial = [], split_fla
     edges_positive = set([(n2i[i],n2i[j],G[i][j]['weight']) for (i,j) in G.edges() if G[i][j]['weight'] >= 0.0])
     edges_negative = set([(n2i[i],n2i[j],G[i][j]['weight']) for (i,j) in G.edges() if G[i][j]['weight'] < 0.0])
     
-    Linear_loss = Loss('linear_loss_rounded', edges_positive=edges_positive, edges_negative=edges_negative)
-    #conflict_loss = test_loss
+    objective = Loss(loss_type, edges_positive=edges_positive, edges_negative=edges_negative)
     
     # Define initial state
     init_state = np.array([n2c[n] for n in sorted(n2c.keys())])
-    loss_init = Linear_loss.loss(init_state)
+    loss_init = objective.loss(init_state)
 
     if loss_init == 0.0:
-        #print('loss_init: ', loss_init)
         classes.sort(key=lambda x:-len(x)) # sort by size
         end_time = time.time()
         stats = stats | {'s':s, 'max_iter':max_iter, 'split_flag':split_flag, 'runtime':(end_time - start_time)/60, 'loss':loss_init} 
@@ -52,30 +54,21 @@ def cluster_correlation_search(G, s = 10, max_iter = 50, initial = [], split_fla
 
     # Initialize multiprocessing.Pool()
     pool = mp.Pool(mp.cpu_count())
-    #pool = mp.Pool(1)
-    #print(mp.cpu_count())
 
-    # `pool.apply`
-    solutions = pool.starmap(Linear_loss.optimize_simulated_annealing, [(n, classes, G.nodes(), init_state, max_iter, rng.integers(100000), rng.integers(100000)) for n in range(2,s)])
+    # Distribute tasks over pool
+    solutions = pool.starmap(objective.optimize_simulated_annealing, [(n, classes, G.nodes(), init_state, max_iter, rng.integers(100000), rng.integers(100000)) for n in range(2,s)]) # Important to have different seeds in different pool processes to explore different areas of the search space
     pool.close()    
-    #print(solutions[0])
     
     # Merge solutions
     for l2s_ in solutions:
-        #print(l2s_)
-        for (l,ss) in l2s_.items():        
+        for (lo,ss) in l2s_.items():        
             for st in ss:        
-                l2s[l].append(st)
-
-    #print(l2s.values())
+                l2s[lo].append(st)
 
     id = np.random.choice(range(len(l2s[min(l2s.keys())])))
     best_state, best_fitness = l2s[min(l2s.keys())][id], min(l2s.keys())
-    #print('loss: ', best_fitness)
 
-    #print(best_state)
     best_state = best_state[0]
-    #print(best_state)
     
     c2n = defaultdict(lambda: [])
     for i, c in enumerate(best_state):
@@ -84,15 +77,14 @@ def cluster_correlation_search(G, s = 10, max_iter = 50, initial = [], split_fla
     classes = [set(c2n[c]) for c in c2n]
 
     # Split collapsed clusters without evidence
-    if split_flag: classes = split_non_evidence_clusters(G, classes)
+    if split_flag:
+        classes = split_non_evidence_clusters(G, classes)
 
     classes.sort(key=lambda x:-len(x)) # sort by size
 
     end_time = time.time()
     stats = stats | {'s':s, 'max_iter':max_iter, 'split_flag':split_flag, 'runtime':(end_time - start_time)/60, 'loss':best_fitness} 
-    
-    #print(stats['runtime'])
-    
+        
     return classes, stats
 
 class Loss(object):
@@ -162,33 +154,21 @@ class Loss(object):
 
     def optimize_simulated_annealing(self, n, classes, nodes, init_state, max_iter, seed1, seed2):
 
-        # Important to have different seeds in different pool processes
-        #print(seed1, seed2)
-
         l2s_ = defaultdict(lambda: [])
 
         # With initial state
         max_val = max(n,len(classes))
         bounds = [(0, max_val) for i in range(len(nodes))]
-        #print(bounds)
 
         objective = self.fitness_fn
 
-        init_state = init_state.astype(float) # this seems to be important
-        #print(init_state)
-
-        #def my_callback(x, f, context):
-        #    print(f"Intermediate result: x={x[0]:.2f}, f(x)={f:.2f}, Context={context}") # prints only first node's cluster assignment
-        #    return False # return False if you want to break the search
+        init_state = init_state.astype(float) # this may be important
         
         # Solve problem using simulated annealing
         res = dual_annealing(objective, bounds, no_local_search=True, maxiter=max_iter, x0 = init_state, rng=seed1)
         
         best_state = [int(np.round(i)) for i in res.x]
         l2s_[res.fun].append((best_state,max_val))
-        #print(res.x)
-        #print(best_state)
-        #print(res.fun)
         
         # Repeat without initial state
         max_val = n
@@ -197,10 +177,7 @@ class Loss(object):
         # Solve problem using simulated annealing
         res = dual_annealing(objective, bounds, no_local_search=True, maxiter=max_iter, rng=seed2)
         
-        #print(res.x)
         best_state = [int(np.round(i)) for i in res.x]
-        #print(best_state)
-        #print(res.fun)
         l2s_[res.fun].append((best_state,max_val))
 
         return dict(l2s_)

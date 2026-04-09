@@ -1,0 +1,14 @@
+env_list = ["3.10", "3.11", "3.12", "3.13", "3.14", "lint"]
+
+[env_run_base]
+description = "run the test suite with pytest"
+deps = [
+    "pytest>=8",
+]
+commands = [["pytest", { replace = "posargs", default = ["correlation_clustering/tests"], extend = true }]]
+
+[env.lint]
+description = "run linters"
+skip_install = true
+deps = ["ruff"]
+commands = [["ruff", "check", { replace = "posargs", default = ["."], extend = true }]]

@@ -1,4 +1,11 @@
+.benchmarks
+.pytest_cache
+.ruff_cache
+.tox
 __pycache__
+./build
+./dist
+correlation_clustering.egg-info
 install_packages.sh
 .venv
 update-git.sh

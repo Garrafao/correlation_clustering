@@ -13,17 +13,56 @@ If you use this software for academic research, please [cite](#bibtex) these pap
 - Dominik Schlechtweg, Nina Tahmasebi, Simon Hengchen, Haim Dubossarsky, Barbara McGillivray. 2021. [DWUG: A large Resource of Diachronic Word Usage Graphs in Four Languages](https://aclanthology.org/2021.emnlp-main.567/). In Proceedings of the 2021 Conference on Empirical Methods in Natural Language Processing.
 - Dominik Schlechtweg. 2023. [Human and Computational Measurement of Lexical Semantic Change](http://dx.doi.org/10.18419/opus-12833). PhD thesis. University of Stuttgart.
 
-Find further extensive experiments testing and optimizing this implementation in:
+Find further extensive experiments testing and optimizing v1.0.0 of this implementation in:
 
 - Benjamin Tunc. [Optimierung von Clustering von Wortverwendungsgraphen](https://elib.uni-stuttgart.de/handle/11682/11923). Bachelor thesis. University of Stuttgart. [[slides]](https://garrafao.github.io/publications/211201-optimierung-wugs.pdf)
 
-### Usage
+### Simple example
+```
+import networkx as nx
+from itertools import combinations
+from correlation_clustering.correlation import cluster_correlation_search
+import numpy as np
 
-We recommend run the code within a [Anaconda virtual environment](https://docs.anaconda.com/) with Python 3.10.8. Install the required packages running `pip install -r requirements.txt`.
+# Define true clusters
+nodes = ['node1', 'node2', 'node3', 'node4']
+node2clusters_true = {'node1':0, 'node2':0, 'node3':1, 'node4':1}
+print('clusters_true', node2clusters_true)
+
+# Initialize graph
+graph = nx.Graph()
+
+# Generate perfectly clusterable graph
+for (u,v) in combinations(nodes, 2):
+    if node2clusters_true[u] == node2clusters_true[v]:
+        graph.add_edge(u, v, weight=np.random.choice([3,4]))
+    else:
+        graph.add_edge(u, v, weight=np.random.choice([1,2]))
+
+# Prepare graph for clustering
+threshold = 2.5
+for (i,j) in graph.edges():
+    graph[i][j]['weight'] = graph[i][j]['weight']-threshold # shift edge weights
+
+# Cluster graph
+clusters, cluster_stats = cluster_correlation_search(graph)
+
+# Display results
+node2cluster_inferred = {node:i for i, cluster in enumerate(clusters) for node in cluster}
+node2cluster_inferred = {node:node2cluster_inferred[node] for node in nodes}
+print('clusters_inferred', node2cluster_inferred)
+print('loss', cluster_stats['loss'])
+```
+
+### Installation
+
+To install the package run
+
+	pip install correlation_clustering
 
 Please run the test script with
 
-	python src/test.py
+	pytest
 
 
 BibTex
@@ -63,5 +102,6 @@ slides = {https://garrafao.github.io/publications/211201-optimierung-wugs.pdf},
 url = {https://elib.uni-stuttgart.de/handle/11682/11923}
 }
 ```
+
 
 
